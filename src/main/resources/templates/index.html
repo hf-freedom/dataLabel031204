@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel数据预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .template-list {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .template-item {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 14px;
+        }
+        .template-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8edff;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .upload-text {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .file-input {
+            display: none;
+        }
+        .upload-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .preview-area {
+            display: none;
+        }
+        .preview-area.show {
+            display: block;
+        }
+        .task-info {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .task-info span {
+            color: #666;
+        }
+        .task-info strong {
+            color: #667eea;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+            transition: all 0.3s;
+        }
+        .edit-btn {
+            background: #28a745;
+            color: white;
+        }
+        .edit-btn:hover {
+            background: #218838;
+        }
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        .save-btn {
+            padding: 12px 40px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-header h3 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .modal-btn.cancel {
+            background: #6c757d;
+            color: white;
+        }
+        .modal-btn.confirm {
+            background: #667eea;
+            color: white;
+        }
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .loading.show {
+            display: flex;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: #666;
+        }
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            z-index: 3000;
+            animation: slideIn 0.3s ease;
+        }
+        .message.success {
+            background: #28a745;
+        }
+        .message.error {
+            background: #dc3545;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Excel数据预览系统</h1>
+            <p>支持模板下载、数据上传、预览编辑和保存</p>
+        </div>
+        <div class="content">
+            <div class="section">
+                <h2 class="section-title">模板下载</h2>
+                <div class="template-list" id="templateList">
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">文件上传</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">拖拽Excel文件到此处，或点击选择文件</div>
+                    <input type="file" class="file-input" id="fileInput" accept=".xlsx,.xls">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">选择文件</button>
+                </div>
+            </div>
+
+            <div class="section preview-area" id="previewArea">
+                <h2 class="section-title">数据预览</h2>
+                <div class="task-info" id="taskInfo">
+                </div>
+                <div class="table-container">
+                    <table id="dataTable">
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div style="text-align: center;">
+                    <button class="save-btn" onclick="saveData()">保存数据</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑数据</h3>
+            </div>
+            <div id="editForm"></div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeEditModal()">取消</button>
+                <button class="modal-btn confirm" onclick="saveEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">处理中...</div>
+    </div>
+
+    <script>
+        let currentTaskId = null;
+        let currentHeaders = [];
+        let currentRowIndex = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTemplates();
+            setupUpload();
+        });
+
+        function loadTemplates() {
+            fetch('/api/excel/templates')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        const list = document.getElementById('templateList');
+                        const templates = data.data;
+                        for (let id in templates) {
+                            const btn = document.createElement('button');
+                            btn.className = 'template-item';
+                            btn.textContent = templates[id];
+                            btn.onclick = () => downloadTemplate(id);
+                            list.appendChild(btn);
+                        }
+                    }
+                });
+        }
+
+        function downloadTemplate(templateId) {
+            window.location.href = '/api/excel/template/download/' + templateId;
+        }
+
+        function setupUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    uploadFile(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    uploadFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function uploadFile(file) {
+            showLoading();
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/api/excel/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                hideLoading();
+                if (data.code === 200) {
+                    showMessage('上传成功', 'success');
+                    displayPreview(data.data);
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                hideLoading();
+                showMessage('上传失败: ' + err.message, 'error');
+            });
+        }
+
+        function displayPreview(data) {
+            currentTaskId = data.taskId;
+            currentHeaders = data.headers;
+
+            document.getElementById('previewArea').classList.add('show');
+            
+            const taskInfo = document.getElementById('taskInfo');
+            taskInfo.innerHTML = `
+                <span>任务ID: <strong>${data.taskId}</strong></span>
+                <span>模板: <strong>${data.templateName}</strong></span>
+                <span>数据量: <strong>${data.total}</strong> 条</span>
+            `;
+
+            const thead = document.getElementById('tableHead');
+            thead.innerHTML = '<tr>' + 
+                data.headers.map(h => `<th>${h}</th>`).join('') + 
+                '<th>操作</th></tr>';
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            data.data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = getRowHtml(row, index);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function getRowHtml(row, index) {
+            let html = '';
+            if (typeof row === 'object' && row !== null) {
+                const values = Object.values(row);
+                values.forEach(val => {
+                    html += `<td>${val || ''}</td>`;
+                });
+            } else if (Array.isArray(row)) {
+                row.forEach(val => {
+                    html += `<td>${val || ''}</td>`;
+                });
+            }
+            html += `<td>
+                <button class="action-btn edit-btn" onclick="editRow(${index})">编辑</button>
+                <button class="action-btn delete-btn" onclick="deleteRow(${index})">删除</button>
+            </td>`;
+            return html;
+        }
+
+        function editRow(index) {
+            currentRowIndex = index;
+            const tbody = document.getElementById('tableBody');
+            const row = tbody.rows[index];
+            const cells = row.cells;
+            
+            const form = document.getElementById('editForm');
+            form.innerHTML = '';
+            
+            for (let i = 0; i < currentHeaders.length; i++) {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                div.innerHTML = `
+                    <label>${currentHeaders[i]}</label>
+                    <input type="text" id="edit_${i}" value="${cells[i].textContent}">
+                `;
+                form.appendChild(div);
+            }
+            
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+
+        function saveEdit() {
+            const values = [];
+            for (let i = 0; i < currentHeaders.length; i++) {
+                values.push(document.getElementById('edit_' + i).value);
+            }
+
+            fetch(`/api/excel/row/${currentTaskId}/${currentRowIndex}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(values)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 200) {
+                    showMessage('更新成功', 'success');
+                    refreshPreview();
+                    closeEditModal();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            });
+        }
+
+        function deleteRow(index) {
+            if (!confirm('确定要删除这条数据吗？')) {
+                return;
+            }
+
+            fetch(`/api/excel/row/${currentTaskId}/${index}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 200) {
+                    showMessage('删除成功', 'success');
+                    refreshPreview();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            });
+        }
+
+        function refreshPreview() {
+            fetch(`/api/excel/preview/${currentTaskId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        displayPreview(data.data);
+                    }
+                });
+        }
+
+        function saveData() {
+            if (!currentTaskId) {
+                showMessage('没有可保存的数据', 'error');
+                return;
+            }
+
+            if (!confirm('确定要保存数据吗？保存后临时数据将被清除。')) {
+                return;
+            }
+
+            showLoading();
+            fetch(`/api/excel/save/${currentTaskId}`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                hideLoading();
+                if (data.code === 200) {
+                    showMessage('保存成功，共保存 ' + data.data.length + ' 条数据', 'success');
+                    currentTaskId = null;
+                    document.getElementById('previewArea').classList.remove('show');
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                hideLoading();
+                showMessage('保存失败: ' + err.message, 'error');
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        function showMessage(text, type) {
+            const msg = document.createElement('div');
+            msg.className = 'message ' + type;
+            msg.textContent = text;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
