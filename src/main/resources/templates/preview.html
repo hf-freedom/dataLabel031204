@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据预览 - Excel数据导入系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 1.8em;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(235, 51, 73, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        tr.invalid {
+            background: #fff5f5;
+        }
+
+        tr.invalid:hover {
+            background: #ffe0e0;
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group .error {
+            border-color: #e74c3c;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select, .filter-bar input {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>👁️ 数据预览</h1>
+                <p style="color: #666; margin-top: 5px;" id="fileInfo">正在加载...</p>
+            </div>
+            <div class="header-info">
+                <div class="stat">
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label">总数据</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="validCount" style="color: #11998e;">0</div>
+                    <div class="stat-label">有效</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="invalidCount" style="color: #eb3349;">0</div>
+                    <div class="stat-label">无效</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <div class="card">
+            <div class="toolbar">
+                <div class="filter-bar">
+                    <select id="filterStatus" onchange="filterData()">
+                        <option value="all">全部数据</option>
+                        <option value="valid">仅有效</option>
+                        <option value="invalid">仅无效</option>
+                    </select>
+                    <input type="text" id="searchInput" placeholder="搜索..." oninput="filterData()">
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="goBack()">
+                        ← 返回
+                    </button>
+                    <button class="btn btn-success" id="saveBtn" onclick="saveData()">
+                        💾 保存数据
+                    </button>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在加载数据...</p>
+            </div>
+
+            <div class="table-container" id="tableContainer">
+                <table id="dataTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-state-icon">📭</div>
+                <h3>暂无数据</h3>
+                <p>该任务中没有数据或数据已全部删除</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ 编辑数据</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="editForm"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const taskId = [[${taskId}]];
+        let taskData = null;
+        let currentEditIndex = -1;
+        let fieldMapping = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+        });
+
+        function loadData() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('tableContainer').style.display = 'none';
+
+            fetch('/api/preview/data/' + taskId)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+
+                    if (data.success) {
+                        taskData = data.data;
+                        fieldMapping = taskData.fieldMapping || {};
+                        renderData();
+                        updateStats();
+                    } else {
+                        showAlert(data.message || '加载失败', 'error');
+                        document.getElementById('emptyState').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    showAlert('加载失败: ' + error.message, 'error');
+                });
+        }
+
+        function renderData() {
+            if (!taskData || !taskData.dataList || taskData.dataList.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('tableContainer').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'block';
+
+            document.getElementById('fileInfo').textContent = 
+                '模板: ' + taskData.templateName + ' | 文件名: ' + taskData.fileName;
+
+            const headers = taskData.headers || [];
+            const headHtml = '<tr>' +
+                headers.map(h => '<th>' + h + '</th>').join('') +
+                '<th>状态</th>' +
+                '<th>操作</th>' +
+                '</tr>';
+            document.getElementById('tableHead').innerHTML = headHtml;
+
+            renderTableBody(taskData.dataList);
+        }
+
+        function renderTableBody(dataList) {
+            const headers = taskData.headers || [];
+            const fieldMap = taskData.fieldMapping || {};
+
+            const bodyHtml = dataList.map((row, index) => {
+                const isValid = row._valid !== false;
+                const errorMsg = row._validateMsg || '';
+                const rowNum = row._rowNum || (index + 3);
+
+                let cells = headers.map(header => {
+                    const field = fieldMap[header] || header;
+                    const value = row[field] || '';
+                    return '<td>' + escapeHtml(value) + '</td>';
+                }).join('');
+
+                cells += '<td>' + 
+                    (isValid ? 
+                        '<span class="badge badge-success">✓ 有效</span>' : 
+                        '<span class="badge badge-error">✗ 无效</span><div class="error-msg">' + escapeHtml(errorMsg) + '</div>') +
+                    '</td>';
+
+                cells += '<td>' +
+                    '<div class="actions">' +
+                    '<button class="btn btn-primary btn-small" onclick="editRow(' + index + ')">编辑</button>' +
+                    '<button class="btn btn-danger btn-small" onclick="deleteRow(' + index + ')">删除</button>' +
+                    '</div>' +
+                    '</td>';
+
+                return '<tr class="' + (isValid ? '' : 'invalid') + '" data-index="' + index + '">' + cells + '</tr>';
+            }).join('');
+
+            document.getElementById('tableBody').innerHTML = bodyHtml;
+        }
+
+        function updateStats() {
+            if (!taskData) return;
+            document.getElementById('totalCount').textContent = taskData.totalCount || 0;
+            document.getElementById('validCount').textContent = taskData.validCount || 0;
+            document.getElementById('invalidCount').textContent = taskData.invalidCount || 0;
+
+            const saveBtn = document.getElementById('saveBtn');
+            if (taskData.invalidCount > 0) {
+                saveBtn.disabled = true;
+                saveBtn.title = '存在校验不通过的数据，请先修正';
+            } else {
+                saveBtn.disabled = false;
+                saveBtn.title = '';
+            }
+        }
+
+        function filterData() {
+            if (!taskData || !taskData.dataList) return;
+
+            const statusFilter = document.getElementById('filterStatus').value;
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = taskData.dataList.filter((row, index) => {
+                const isValid = row._valid !== false;
+
+                if (statusFilter === 'valid' && !isValid) return false;
+                if (statusFilter === 'invalid' && isValid) return false;
+
+                if (searchText) {
+                    const rowText = JSON.stringify(row).toLowerCase();
+                    return rowText.includes(searchText);
+                }
+
+                return true;
+            });
+
+            renderTableBody(filtered);
+        }
+
+        function editRow(index) {
+            currentEditIndex = index;
+            const row = taskData.dataList[index];
+            const headers = taskData.headers || [];
+            const fieldMap = taskData.fieldMapping || {};
+
+            let formHtml = '';
+            headers.forEach(header => {
+                const field = fieldMap[header] || header;
+                const value = row[field] || '';
+                const required = header.includes('*');
+
+                formHtml += '<div class="form-group">' +
+                    '<label>' + escapeHtml(header) + (required ? ' *' : '') + '</label>' +
+                    '<input type="text" id="field_' + field + '" value="' + escapeHtml(value) + '" ' +
+                    'data-field="' + field + '" ' + (required ? 'required' : '') + '>' +
+                    '</div>';
+            });
+
+            document.getElementById('editForm').innerHTML = formHtml;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            currentEditIndex = -1;
+        }
+
+        function saveEdit() {
+            if (currentEditIndex < 0) return;
+
+            const inputs = document.querySelectorAll('#editForm input');
+            const rowData = {};
+
+            inputs.forEach(input => {
+                rowData[input.dataset.field] = input.value;
+            });
+
+            fetch('/api/preview/update/' + taskId + '?rowIndex=' + currentEditIndex, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(rowData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    taskData = data.data;
+                    renderData();
+                    updateStats();
+                    closeModal();
+                    showAlert('更新成功', 'success');
+                } else {
+                    showAlert(data.message || '更新失败', 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('更新失败: ' + error.message, 'error');
+            });
+        }
+
+        function deleteRow(index) {
+            if (!confirm('确定要删除这条数据吗？')) return;
+
+            fetch('/api/preview/delete/' + taskId + '?rowIndex=' + index, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    taskData = data.data;
+                    renderData();
+                    updateStats();
+                    showAlert('删除成功', 'success');
+                } else {
+                    showAlert(data.message || '删除失败', 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('删除失败: ' + error.message, 'error');
+            });
+        }
+
+        function saveData() {
+            if (!confirm('确定要保存所有数据吗？')) return;
+
+            fetch('/api/preview/save/' + taskId, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message || '保存成功', 'success');
+                    setTimeout(() => {
+                        goBack();
+                    }, 2000);
+                } else {
+                    showAlert(data.message || '保存失败', 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('保存失败: ' + error.message, 'error');
+            });
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = 'alert alert-' + type;
+            alertBox.style.display = 'block';
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
