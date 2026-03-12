@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: excel-preview
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+server:
+  port: ${random.int(17000,18000)}
