@@ -1,0 +1,19 @@
+server:
+  port: ${random.int[17000,18000]}
+
+spring:
+  application:
+    name: excel-preview
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+
+excel:
+  template:
+    path: classpath:config/
